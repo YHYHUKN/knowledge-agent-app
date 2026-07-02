@@ -1,147 +1,138 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Dialog } from "@/components/ui/dialog";
-import { Input, Textarea } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { KnowledgeAsset } from "@/lib/types";
+import { useState } from "react";
+import { Modal, Form, Input, Select, App } from "antd";
+import { FileAddOutlined } from "@ant-design/icons";
 
-/**
- * @component AssetFormDialog
- * @description 新增知识资产弹窗。
- *
- *   三字段表单：标题（必填）/ 内容（必填）/ 标签（选填，逗号分隔）
- *   提交中所有字段 disabled + 按钮"保存中…"
- *   校验失败：红色内联错误提示
- */
-export function AssetFormDialog({
-  open,
-  onClose,
-  onCreated,
-}: {
+const { TextArea } = Input;
+
+/* 预置标签选项 */
+const TAG_OPTIONS = [
+  { value: "可观测性", label: "可观测性" },
+  { value: "权限控制", label: "权限控制" },
+  { value: "Trace", label: "Trace" },
+  { value: "智能体", label: "智能体" },
+  { value: "检索", label: "检索" },
+  { value: "安全", label: "安全" },
+];
+
+interface AssetFormDialogProps {
   open: boolean;
   onClose: () => void;
-  onCreated: (asset: KnowledgeAsset) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
+  onCreated: () => void;
+}
+
+export function AssetFormDialog({ open, onClose, onCreated }: AssetFormDialogProps) {
+  const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { message } = App.useApp();
 
-  function reset() {
-    setTitle("");
-    setContent("");
-    setTagsInput("");
-    setError(null);
-  }
-
-  function handleClose() {
-    if (submitting) return;
-    reset();
-    onClose();
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!title.trim() || !content.trim()) {
-      setError("标题和内容均为必填项");
-      return;
-    }
-
-    const tags = tagsInput
-      .split(/[,，]/)
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    setSubmitting(true);
+  const handleSubmit = async () => {
     try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+
       const res = await fetch("/api/assets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), content: content.trim(), tags }),
+        body: JSON.stringify({
+          title: values.title.trim(),
+          content: values.content.trim(),
+          tags: values.tags ?? [],
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "新增失败，请重试");
 
-      onCreated(data.asset as KnowledgeAsset);
-      reset();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "新增失败，请重试");
+      if (!res.ok) {
+        const err = await res.json();
+        message.error(err.error ?? "创建失败");
+        return;
+      }
+
+      message.success("资产已添加");
+      form.resetFields();
+      onCreated();
+    } catch {
+      // 表单校验失败，antd 自动处理
     } finally {
       setSubmitting(false);
     }
-  }
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    onClose();
+  };
 
   return (
-    <Dialog
+    <Modal
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <FileAddOutlined style={{ color: "#165DFF" }} />
+          <span>新增知识资产</span>
+        </div>
+      }
       open={open}
-      onClose={handleClose}
-      title="新增知识资产"
-      description="内容将被纳入检索范围，供 Agent 问答时召回引用"
+      onOk={handleSubmit}
+      onCancel={handleCancel}
+      confirmLoading={submitting}
+      okText="确认添加"
+      cancelText="取消"
+      okButtonProps={{
+        style: { borderRadius: 12 },
+      }}
+      cancelButtonProps={{
+        style: { borderRadius: 12 },
+      }}
+      styles={{
+        body: { padding: "24px 24px 8px" },
+      }}
+      transitionName=""
+      maskStyle={{ backdropFilter: "blur(4px)" }}
+      style={{ top: 60 }}
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 标题 */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink-800">
-            标题 <span className="text-danger">*</span>
-          </label>
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ tags: [] }}
+      >
+        <Form.Item
+          name="title"
+          label="标题"
+          rules={[{ required: true, message: "请输入资产标题" }]}
+        >
           <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="例如：向量数据库选型说明"
+            placeholder="请输入知识资产标题"
             maxLength={100}
-            autoFocus
+            showCount
+            style={{ borderRadius: 12 }}
           />
-        </div>
+        </Form.Item>
 
-        {/* 内容 */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink-800">
-            内容 <span className="text-danger">*</span>
-          </label>
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="详细描述这条知识的内容，Agent 将直接引用这段文本生成回答"
-            rows={6}
+        <Form.Item
+          name="content"
+          label="内容"
+          rules={[{ required: true, message: "请输入资产内容" }]}
+        >
+          <TextArea
+            placeholder="请输入知识资产内容描述"
+            rows={5}
             maxLength={2000}
+            showCount
+            style={{ borderRadius: 12 }}
           />
-          <p className="text-2xs text-ink-400 tabular-nums">
-            {content.length}/2000
-          </p>
-        </div>
+        </Form.Item>
 
-        {/* 标签 */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink-800">标签</label>
-          <Input
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
-            placeholder="多个标签用逗号分隔，例如：RAG, 检索增强"
+        <Form.Item name="tags" label="标签">
+          <Select
+            mode="multiple"
+            placeholder="选择或输入标签"
+            options={TAG_OPTIONS}
+            style={{ borderRadius: 12 }}
+            tokenSeparators={[","]}
           />
-        </div>
-
-        {/* 错误提示 */}
-        {error && (
-          <div className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-2.5 text-xs text-danger">
-            {error}
-          </div>
-        )}
-
-        {/* 操作按钮 */}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={handleClose} disabled={submitting}>
-            取消
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "保存中…" : "保存资产"}
-          </Button>
-        </div>
-      </form>
-    </Dialog>
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }

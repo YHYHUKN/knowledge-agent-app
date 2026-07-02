@@ -1,215 +1,287 @@
 "use client";
 
-import { FormEvent, useRef, useEffect, useState } from "react";
-import { Bot, ChevronDown, ChevronUp, CornerDownLeft, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect, FormEvent } from "react";
+import { Input, Button, Space, Typography, Tag, Empty, Spin } from "antd";
+import { SendOutlined, SearchOutlined, RobotOutlined, FileTextOutlined, InboxOutlined } from "@ant-design/icons";
 import { AgentTrace } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, Badge } from "@/components/ui/card";
-import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { TracePanel } from "@/components/app/trace-panel";
 
-/** 单条对话记录 */
+const { Text, Paragraph } = Typography;
+
 interface ChatEntry {
   id: string;
+  query: string;
   trace: AgentTrace;
-  traceOpen: boolean;
+  streaming?: boolean;
+  streamedAnswer?: string;
 }
 
-/**
- * @component ChatPanel
- * @description Agent 问答面板 —— RAG 链路的交互入口。
- *
- *   交互流程：
- *   1. 输入问题 → POST /api/agent/chat
- *   2. 返回 AgentTrace → 新 ChatEntry 插到列表顶部
- *   3. 每条 entry 展示：问题 → 回答 → 引用 → 可展开 Trace
- *
- *   视觉策略：
- *   - 回答区域左侧用 2px 品牌色竖线区分于用户问题
- *   - 每条 entry 入场时 slide-up + fade-in
- */
-export function ChatPanel({ hasAssets }: { hasAssets: boolean }) {
-  const [query, setQuery] = useState("");
-  const [entries, setEntries] = useState<ChatEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+interface ChatPanelProps {
+  hasAssets: boolean;
+  chatHistory: ChatEntry[];
+  onSend: (query: string) => Promise<{ trace: AgentTrace }>;
+  onHistoryChange: (history: ChatEntry[]) => void;
+}
 
-  // 新消息到达时自动滚动到底部
+export function ChatPanel({ hasAssets, chatHistory, onSend, onHistoryChange }: ChatPanelProps) {
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  /* 自动滚动到底部 */
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [entries, loading]);
+  }, [chatHistory]);
 
-  async function handleSubmit(e: FormEvent) {
+  /* 流式打字动画 */
+  const streamAnswer = (entryId: string, fullAnswer: string) => {
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      onHistoryChange(
+        chatHistory.map((entry) =>
+          entry.id === entryId
+            ? { ...entry, streamedAnswer: fullAnswer.slice(0, i * 3), streaming: i * 3 < fullAnswer.length }
+            : entry
+        )
+      );
+      if (i * 3 >= fullAnswer.length) clearInterval(interval);
+    }, 20);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const q = query.trim();
-    if (!q || loading) return;
+    const query = input.trim();
+    if (!query || sending) return;
 
-    setError(null);
-    setLoading(true);
-    setQuery("");
+    setInput("");
+    setSending(true);
+
+    const entryId = Date.now().toString();
+    const newEntry: ChatEntry = { id: entryId, query, trace: null as any, streaming: true, streamedAnswer: "" };
+    const updated = [...chatHistory, newEntry];
+    onHistoryChange(updated);
 
     try {
-      const res = await fetch("/api/agent/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "提问失败，请重试");
-
-      const trace = data.trace as AgentTrace;
-      setEntries((prev) => [
-        { id: `${Date.now()}`, trace, traceOpen: false },
-        ...prev,
-      ]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "提问失败，请重试");
+      const { trace } = await onSend(query);
+      const finalEntry: ChatEntry = { id: entryId, query, trace, streaming: false, streamedAnswer: "" };
+      onHistoryChange(updated.map((e) => (e.id === entryId ? finalEntry : e)));
+      streamAnswer(entryId, trace.finalAnswer);
+    } catch {
+      const errEntry: ChatEntry = {
+        id: entryId,
+        query,
+        trace: {
+          query,
+          retrievedAssets: [],
+          finalAnswer: "抱歉，服务暂时不可用，请稍后重试。",
+          references: [],
+          createdAt: new Date().toISOString(),
+          grounded: false,
+        },
+        streaming: false,
+      };
+      onHistoryChange(updated.map((e) => (e.id === entryId ? errEntry : e)));
     } finally {
-      setLoading(false);
+      setSending(false);
     }
-  }
-
-  function toggleTrace(id: string) {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, traceOpen: !e.traceOpen } : e))
-    );
-  }
+  };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* ── 面板头部 ── */}
-      <div className="border-b border-border-light px-5 py-3.5">
-        <h2 className="font-display text-sm font-semibold tracking-tight text-ink-900">
-          Agent 问答
-        </h2>
-        <p className="mt-0.5 text-2xs text-ink-400">
-          基于检索结果生成 · 不凭空编造
-        </p>
-      </div>
-
-      {/* ── 对话列表 ── */}
-      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-        {/* Loading 骨架 */}
-        {loading && (
-          <div className="rounded-xl border border-border-light bg-surface p-5 animate-slide-up">
-            <div className="animate-shimmer mb-3 h-4 w-2/5 rounded" />
-            <div className="mb-3 ml-3 border-l-2 border-canvas-muted pl-3">
-              <div className="animate-shimmer mb-2 h-3.5 w-full rounded" />
-              <div className="animate-shimmer mb-2 h-3.5 w-11/12 rounded" />
-              <div className="animate-shimmer h-3.5 w-3/4 rounded" />
-            </div>
-          </div>
-        )}
-
-        {/* 空状态 */}
-        {!loading && entries.length === 0 && (
-          <div className="flex h-full items-center justify-center">
-            <EmptyState
-              icon={<Bot size={32} strokeWidth={1.5} />}
-              title="开始对话"
-              description="输入问题，Agent 会先在知识库中检索相关内容，再基于检索结果生成回答"
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 240px)",
+        minHeight: 480,
+        borderRadius: 12,
+        border: "1px solid #E5E6EB",
+        background: "#FFFFFF",
+        overflow: "hidden",
+      }}
+    >
+      {/* 对话消息区 */}
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
+        {!hasAssets && chatHistory.length === 0 && (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <div>
+                  <Text style={{ fontSize: 14, color: "#86909C", display: "block", marginBottom: 8 }}>
+                    暂无对话记录
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "#BCC1CC" }}>
+                    先添加知识资产，再发起提问
+                  </Text>
+                </div>
+              }
             />
           </div>
         )}
 
-        {/* 对话记录 */}
-        {entries.map((entry) => (
-          <article
-            key={entry.id}
-            className="rounded-xl border border-border-light bg-surface p-5 shadow-card animate-slide-up"
-          >
-            {/* 用户问题 */}
-            <div className="mb-4 flex items-start gap-2.5">
-              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-canvas-muted">
-                <span className="text-2xs font-semibold text-ink-500">Q</span>
+        {chatHistory.map((entry) => (
+          <div key={entry.id} style={{ animation: "slide-up 0.3s ease both" }}>
+            {/* 用户提问气泡 */}
+            <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+              <div
+                style={{
+                  maxWidth: "85%",
+                  borderRadius: 12,
+                  borderTopLeftRadius: 2,
+                  background: "#F2F3F5",
+                  padding: "12px 16px",
+                }}
+              >
+                <Space size={6} style={{ marginBottom: 6 }}>
+                  <SearchOutlined style={{ fontSize: 13, color: "#86909C" }} />
+                  <Text style={{ fontSize: 11, color: "#86909C", fontWeight: 500 }}>Q</Text>
+                </Space>
+                <Text style={{ fontSize: 14, color: "#1D2129", lineHeight: 1.6 }}>{entry.query}</Text>
               </div>
-              <p className="flex-1 text-sm leading-relaxed text-ink-800">
-                {entry.trace.query}
-              </p>
             </div>
 
-            {/* Agent 回答 —— 左侧品牌色竖线强调 */}
-            <div className="relative mb-4 ml-2.5 border-l-2 border-brand/30 bg-brand-soft/30 px-4 py-3">
-              <p className="whitespace-pre-line text-sm leading-relaxed text-ink-700">
-                {entry.trace.finalAnswer}
-              </p>
-            </div>
+            {/* AI 回答气泡 */}
+            {entry.trace && (
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <div
+                  style={{
+                    maxWidth: "90%",
+                    width: "100%",
+                    borderRadius: 12,
+                    borderTopRightRadius: 2,
+                    background: "linear-gradient(135deg, #F0F5FF 0%, #FFFFFF 100%)",
+                    border: "1px solid #E8F3FF",
+                    borderLeft: "3px solid #165DFF",
+                    padding: "16px",
+                  }}
+                >
+                  <Space size={6} style={{ marginBottom: 8 }}>
+                    <RobotOutlined style={{ fontSize: 13, color: "#165DFF" }} />
+                    <Text style={{ fontSize: 11, color: "#165DFF", fontWeight: 500 }}>Agent</Text>
+                  </Space>
 
-            {/* 引用来源 */}
-            {entry.trace.references.length > 0 && (
-              <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-2xs font-medium text-ink-400">
-                  引用
-                </span>
-                {entry.trace.retrievedAssets.map((r) => (
-                  <Badge key={r.assetId} tone="brand">
-                    {r.title}
-                  </Badge>
-                ))}
+                  {/* 加载中 */}
+                  {!entry.streamedAnswer && entry.streaming && (
+                    <Spin size="small" style={{ display: "block" }} />
+                  )}
+
+                  {/* 流式打字输出 */}
+                  {(entry.streamedAnswer || (!entry.streaming && entry.trace)) && (
+                    <Paragraph
+                      style={{
+                        fontSize: 14,
+                        color: "#4E5969",
+                        lineHeight: 1.7,
+                        marginBottom: 8,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {entry.streamedAnswer ?? entry.trace.finalAnswer}
+                      {entry.streaming && <span className="typing-cursor" />}
+                    </Paragraph>
+                  )}
+
+                  {/* 引用来源 */}
+                  {!entry.streaming && entry.trace.references.length > 0 && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed #E5E6EB" }}>
+                      <Space size={4} style={{ marginBottom: 6 }}>
+                        <FileTextOutlined style={{ fontSize: 12, color: "#86909C" }} />
+                        <Text style={{ fontSize: 11, color: "#86909C" }}>引用来源</Text>
+                      </Space>
+                      <Space size={6} wrap>
+                        {entry.trace.references.map((ref) => (
+                          <Tag
+                            key={ref.assetId}
+                            style={{
+                              borderRadius: 6,
+                              border: "none",
+                              background: "#E8F3FF",
+                              color: "#165DFF",
+                              fontSize: 11,
+                              padding: "1px 8px",
+                              cursor: "default",
+                            }}
+                          >
+                            {ref.title}
+                          </Tag>
+                        ))}
+                      </Space>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Trace 切换 */}
-            <button
-              onClick={() => toggleTrace(entry.id)}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-2xs font-medium text-ink-400 transition-colors hover:bg-canvas-muted hover:text-ink-600"
-            >
-              {entry.traceOpen ? (
-                <ChevronUp size={12} />
-              ) : (
-                <ChevronDown size={12} />
-              )}
-              {entry.traceOpen ? "收起" : "Agent Trace"}
-            </button>
-
             {/* Trace 面板 */}
-            {entry.traceOpen && (
-              <div className="mt-3">
+            {entry.trace && !entry.streaming && (
+              <div style={{ marginTop: 12 }}>
                 <TracePanel trace={entry.trace} />
               </div>
             )}
-          </article>
+          </div>
         ))}
       </div>
 
-      {/* ── 错误提示 ── */}
-      {error && (
-        <div className="mx-5 mb-2 rounded-lg border border-danger/20 bg-danger-soft px-4 py-2.5 text-xs text-danger animate-slide-up">
-          {error}
-        </div>
-      )}
-
-      {/* ── 底部输入栏（固定） ── */}
-      <div className="border-t border-border-light bg-surface px-5 py-3.5">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+      {/* 底部输入栏 */}
+      <div
+        style={{
+          padding: "12px 16px",
+          borderTop: "1px solid #E5E6EB",
+          background: "#FAFBFC",
+        }}
+      >
+        <form onSubmit={handleSubmit}>
           <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              hasAssets
-                ? "向知识库提问，例如：Agent 如何协作？"
-                : "知识库为空，请先在左侧新增资产"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={hasAssets ? "输入问题，基于知识库检索生成回答..." : "请先添加知识资产"}
+            disabled={!hasAssets || sending}
+            prefix={<SearchOutlined style={{ color: "#BCC1CC" }} />}
+            suffix={
+              <Button
+                type="primary"
+                htmlType="submit"
+                icon={<SendOutlined />}
+                loading={sending}
+                disabled={!input.trim() || !hasAssets}
+                size="small"
+                style={{ borderRadius: 8 }}
+              />
             }
-            disabled={loading}
-            className="h-10"
+            style={{
+              borderRadius: 12,
+              height: 44,
+              fontSize: 14,
+            }}
           />
-          <Button type="submit" disabled={loading || !query.trim()} size="sm" className="h-10 px-4">
-            {loading ? (
-              <>
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                思考中
-              </>
-            ) : (
-              <>
-                <CornerDownLeft size={14} />
-                发送
-              </>
-            )}
-          </Button>
+          <div
+            style={{
+              marginTop: 8,
+              textAlign: "center",
+              fontSize: 11,
+              color: "#BCC1CC",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+            }}
+          >
+            <InboxOutlined style={{ fontSize: 12 }} />
+            支持拖拽文件导入知识库
+          </div>
         </form>
       </div>
     </div>

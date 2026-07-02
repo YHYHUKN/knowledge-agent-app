@@ -1,125 +1,197 @@
 "use client";
 
-import { FileStack, Plus } from "lucide-react";
+import { Card, Tag, Skeleton, Empty, Typography, Space, Button } from "antd";
+import { FileTextOutlined, PlusOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { KnowledgeAsset } from "@/lib/types";
-import { Card, Badge } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton, EmptyState } from "@/components/ui/feedback";
 import { formatDateTime } from "@/lib/utils";
 
-/**
- * @component AssetList
- * @description 知识资产列表 —— 左侧栏面板。
- *
- *   三种渲染态：
- *   1. loading  → 3 条骨架屏卡（shimmer 动画）
- *   2. 空数据   → EmptyState 插画 cta 引导新增
- *   3. 有数据   → 卡片列表，hover 时微抬升 + 边框高亮
- */
-export function AssetList({
-  assets,
-  loading,
-  onAdd,
+const { Text, Paragraph } = Typography;
+
+/* 标签配色映射 */
+const tagColorMap: Record<string, { bg: string; color: string }> = {
+  可观测: { bg: "#D6E8FF", color: "#165DFF" },
+  可观测性: { bg: "#D6E8FF", color: "#165DFF" },
+  权限: { bg: "#E9E5FF", color: "#722ED1" },
+  权限控制: { bg: "#E9E5FF", color: "#722ED1" },
+  Trace: { bg: "#D9F7E9", color: "#00B42A" },
+};
+
+function getTagStyle(tag: string) {
+  return tagColorMap[tag] ?? { bg: "#F0F2F5", color: "#86909C" };
+}
+
+/* 单条资产卡片 */
+function AssetCard({
+  asset,
+  index,
 }: {
-  assets: KnowledgeAsset[];
-  loading: boolean;
-  onAdd: () => void;
+  asset: KnowledgeAsset;
+  index: number;
 }) {
   return (
-    <div className="flex h-full flex-col">
-      {/* ── 面板头部 ── */}
-      <div className="flex items-center justify-between border-b border-border-light px-5 py-3.5">
-        <div>
-          <h2 className="font-display text-sm font-semibold tracking-tight text-ink-900">
-            知识资产
-          </h2>
-          <p className="mt-0.5 text-2xs text-ink-400">
-            {loading ? "加载中…" : `${assets.length} 条记录 · 内存存储`}
-          </p>
+    <div
+      className="vector-dot-pattern"
+      style={{
+        animation: `slide-up 0.3s ease both`,
+        animationDelay: `${index * 60}ms`,
+      }}
+    >
+      <Card
+        hoverable
+        style={{
+          borderRadius: 12,
+          border: "1px solid #E5E6EB",
+          transition: "all 0.25s ease",
+          cursor: "pointer",
+        }}
+        styles={{ body: { padding: 20 } }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.transform = "translateY(-2px)";
+          el.style.boxShadow = "0 3px 12px rgba(22, 93, 255, 0.12)";
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.transform = "translateY(0)";
+          el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)";
+        }}
+        onMouseDown={(e) => {
+          (e.currentTarget as HTMLElement).style.transform = "scale(0.98)";
+        }}
+        onMouseUp={(e) => {
+          (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+        }}
+      >
+        {/* 卡片头部：标题 + 时间 */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 12,
+          }}
+        >
+          <Text
+            strong
+            style={{
+              fontSize: 15,
+              color: "#1D2129",
+              lineHeight: 1.4,
+              flex: 1,
+              transition: "color 0.2s ease",
+            }}
+            className="card-title-hover"
+          >
+            {asset.title}
+          </Text>
+          <Space size={4} style={{ flexShrink: 0, marginLeft: 12 }}>
+            <ClockCircleOutlined style={{ fontSize: 11, color: "#86909C" }} />
+            <Text style={{ fontSize: 11, color: "#86909C", whiteSpace: "nowrap" }}>
+              {formatDateTime(asset.createdAt)}
+            </Text>
+          </Space>
         </div>
-        <Button size="sm" onClick={onAdd}>
-          <Plus size={14} />
-          新增
-        </Button>
-      </div>
 
-      {/* ── 列表区 ── */}
-      <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-3">
-        {/* Loading 骨架屏 */}
-        {loading &&
-          Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-border-light bg-surface p-4"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <div className="animate-shimmer mb-3 h-4 w-2/3 rounded" />
-              <div className="animate-shimmer mb-2 h-3 w-full rounded" />
-              <div className="animate-shimmer mb-3 h-3 w-4/5 rounded" />
-              <div className="flex gap-1.5">
-                <div className="animate-shimmer h-5 w-14 rounded" />
-                <div className="animate-shimmer h-5 w-10 rounded" />
-              </div>
-            </div>
-          ))}
+        {/* 正文描述 */}
+        <Paragraph
+          style={{
+            fontSize: 14,
+            color: "#4E5969",
+            lineHeight: 1.7,
+            marginBottom: 16,
+          }}
+          ellipsis={{ rows: 3 }}
+        >
+          {asset.content}
+        </Paragraph>
 
-        {/* 空数据 */}
-        {!loading && assets.length === 0 && (
-          <div className="flex h-full items-center justify-center">
-            <EmptyState
-              icon={<FileStack size={32} strokeWidth={1.5} />}
-              title="知识库为空"
-              description="新增第一条资产后，Agent 即可检索并作答"
-              action={
-                <Button size="sm" variant="secondary" onClick={onAdd}>
-                  <Plus size={14} />
-                  新增资产
-                </Button>
-              }
-            />
-          </div>
-        )}
-
-        {/* 资产卡片列表 */}
-        {!loading &&
-          assets.map((asset, i) => (
-            <article
-              key={asset.id}
-              className="group cursor-default rounded-lg border border-border-light bg-surface p-4 transition-all duration-200 ease-out-expo hover:border-brand/20 hover:shadow-card-hover hover:-translate-y-0.5 animate-slide-up"
-              style={{ animationDelay: `${i * 50}ms` }}
-            >
-              {/* 标题行 */}
-              <div className="mb-1.5 flex items-start gap-2">
-                <h3 className="flex-1 text-sm font-semibold leading-snug text-ink-900 transition-colors group-hover:text-brand">
-                  {asset.title}
-                </h3>
-              </div>
-
-              {/* 正文摘要 */}
-              <p className="mb-3 line-clamp-2 text-xs leading-relaxed text-ink-500">
-                {asset.content}
-              </p>
-
-              {/* 底部：标签 + 时间 */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-1">
-                  {asset.tags.length > 0 ? (
-                    asset.tags.map((tag) => (
-                      <Badge key={tag} tone="neutral">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-2xs text-ink-300">无标签</span>
-                  )}
-                </div>
-                <time className="shrink-0 font-mono text-2xs text-ink-300">
-                  {formatDateTime(asset.createdAt)}
-                </time>
-              </div>
-            </article>
-          ))}
-      </div>
+        {/* 底部标签行 */}
+        <Space size={6} wrap>
+          {asset.tags.map((tag) => {
+            const style = getTagStyle(tag);
+            return (
+              <Tag
+                key={tag}
+                style={{
+                  borderRadius: 6,
+                  border: "none",
+                  background: style.bg,
+                  color: style.color,
+                  fontSize: 12,
+                  padding: "1px 10px",
+                  margin: 0,
+                }}
+              >
+                {tag}
+              </Tag>
+            );
+          })}
+        </Space>
+      </Card>
     </div>
+  );
+}
+
+/* 骨架屏 */
+function AssetSkeleton() {
+  return (
+    <Card style={{ borderRadius: 12 }} styles={{ body: { padding: 20 } }}>
+      <Skeleton active paragraph={{ rows: 3 }} />
+    </Card>
+  );
+}
+
+/* 空状态 */
+function AssetEmpty({ onAdd }: { onAdd: () => void }) {
+  return (
+    <Card style={{ borderRadius: 12, textAlign: "center", padding: "48px 24px" }}>
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={
+          <div>
+            <Text style={{ fontSize: 14, color: "#86909C", display: "block", marginBottom: 8 }}>
+              暂无知识资产
+            </Text>
+            <Text style={{ fontSize: 12, color: "#BCC1CC" }}>
+              点击下方按钮添加第一条知识资产
+            </Text>
+          </div>
+        }
+      >
+        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd} style={{ borderRadius: 12 }}>
+          新增资产
+        </Button>
+      </Empty>
+    </Card>
+  );
+}
+
+interface AssetListProps {
+  assets: KnowledgeAsset[];
+  loading: boolean;
+  onRefresh: () => void;
+}
+
+export function AssetList({ assets, loading, onRefresh }: AssetListProps) {
+  if (loading) {
+    return (
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        {[1, 2, 3].map((i) => (
+          <AssetSkeleton key={i} />
+        ))}
+      </Space>
+    );
+  }
+
+  if (assets.length === 0) {
+    return <AssetEmpty onAdd={onRefresh} />;
+  }
+
+  return (
+    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      {assets.map((asset, i) => (
+        <AssetCard key={asset.id} asset={asset} index={i} />
+      ))}
+    </Space>
   );
 }

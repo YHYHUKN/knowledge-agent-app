@@ -2,38 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ══════════════════════════════════════════════════════════════
-   设计基调：克制、洁净、专业
-   色板以冷灰为底，深墨蓝为唯一强调色，琥珀仅作语义信号。
-   不使用装饰色，不堆砌渐变，一切以信息层级为中心。
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   全局基础样式 — Ant Design 5 + Tailwind 共存
+   视觉规范：品牌主色 #165DFF，圆角 12px，字体 Inter
+   ═══════════════════════════════════════════════════════════════ */
 
 @layer base {
   html,
   body {
-    background-color: #f2f4f7;
-    color: #1a1d28;
+    background-color: #f7f8fa;
+    color: #1d2129;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-  }
-
-  * {
-    border-color: #e4e7ed;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif;
   }
 
   ::selection {
-    background-color: #e8ecf4;
-    color: #2a3f73;
+    background-color: #e8f3ff;
+    color: #165dff;
   }
 
   :focus-visible {
-    outline: 2px solid #2a3f73;
+    outline: 2px solid #165dff;
     outline-offset: 2px;
     border-radius: 2px;
   }
 
-  /* 细滚动条 —— 不喧宾夺主 */
+  /* 细滚动条 */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -60,34 +56,59 @@
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   动画关键帧
-   原则：只做功能性微动效，不追求花哨
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   自定义动画关键帧
+   ═══════════════════════════════════════════════════════════════ */
 
+/* 在线状态呼吸灯 */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* 淡入 */
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
+/* 上滑淡入 */
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* 缩放淡入 */
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* 骨架屏流光 */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-/* ══════════════════════════════════════════════════════════════
+/* 流式打字闪烁光标 */
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* Trace 连接线流动 */
+@keyframes flow-line {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    动画工具类
-   ══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════ */
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
 
 .animate-fade-in {
   animation: fade-in 0.3s ease both;
@@ -101,9 +122,121 @@
   animation: scale-in 0.2s ease both;
 }
 
-/* 骨架屏脉冲 */
 .animate-shimmer {
   background: linear-gradient(90deg, #eaecf2 25%, #f5f6f8 50%, #eaecf2 75%);
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* 流式打字闪烁光标 */
+.typing-cursor::after {
+  content: "▍";
+  animation: blink-caret 0.8s step-end infinite;
+  color: #165dff;
+  font-weight: 300;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   向量点阵底纹 (产品差异化视觉标识)
+   ═══════════════════════════════════════════════════════════════ */
+.vector-dot-pattern {
+  position: relative;
+  overflow: hidden;
+}
+
+.vector-dot-pattern::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: radial-gradient(circle, #165dff 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.vector-dot-pattern > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Trace 流动连接线
+   ═══════════════════════════════════════════════════════════════ */
+.trace-flow {
+  position: relative;
+  padding: 16px 0 8px;
+}
+
+.trace-flow-line {
+  position: absolute;
+  top: 34px;
+  left: 40px;
+  right: 40px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #e8f3ff 0%, #165dff 25%, #4080ff 50%, #165dff 75%, #e8f3ff 100%);
+  background-size: 200% 100%;
+  animation: flow-line 3s linear infinite;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   响应式适配辅助类
+   ═══════════════════════════════════════════════════════════════ */
+.desktop-only {
+  display: inline-flex;
+}
+
+.mobile-only-float {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only-float {
+    display: flex;
+  }
+}
+
+/* 触控区域最小 44px */
+.touch-safe {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   深浅主题覆盖
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] html,
+[data-theme="dark"] body {
+  background-color: #15171a;
+  color: #c9cdd4;
+}
+
+[data-theme="dark"] .vector-dot-pattern::before {
+  opacity: 0.05;
+  background-image: radial-gradient(circle, #4080ff 1px, transparent 1px);
+}
+
+[data-theme="dark"] .trace-flow-line {
+  background: linear-gradient(90deg, #23272e 0%, #4080ff 25%, #165dff 50%, #4080ff 75%, #23272e 100%);
+  background-size: 200% 100%;
+}
+
+/* 暗色模式下滚动条适配 */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background-color: #4e5969;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7685;
+}
+
+/* 全局过渡 */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }

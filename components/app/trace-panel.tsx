@@ -1,126 +1,219 @@
 "use client";
 
+import { Card, Space, Typography, Tag, Tooltip } from "antd";
+import {
+  SearchOutlined,
+  FileTextOutlined,
+  ThunderboltOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 import { AgentTrace } from "@/lib/types";
-import { Badge } from "@/components/ui/card";
-import { AlertTriangle, Circle, Search, Brain, FileText } from "lucide-react";
 
-/**
- * @component ScoreBar
- * @description 相似度分数条 —— 琥珀色填充 + 精确数值。
- *              score ∈ [0, 1]，按百分比渲染宽度。
- */
-function ScoreBar({ score }: { score: number }) {
+const { Text } = Typography;
+
+/* 相似度进度条 */
+function ScoreBar({ score, label }: { score: number; label: string }) {
   const pct = Math.round(score * 100);
+
   return (
-    <div className="flex shrink-0 items-center gap-2">
-      <div className="h-1 w-14 overflow-hidden rounded-full bg-canvas-muted">
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 10px",
+        borderRadius: 8,
+        background: score >= 0.08 ? "#F0FFF4" : "#FFF7F0",
+        border: `1px solid ${score >= 0.08 ? "#D9F7E9" : "#FFE7D4"}`,
+      }}
+    >
+      <Text style={{ fontSize: 12, color: "#4E5969", flexShrink: 0, maxWidth: 100 }} ellipsis>
+        {label}
+      </Text>
+      <div style={{ flex: 1 }}>
         <div
-          className="h-full rounded-full bg-signal transition-all duration-500 ease-out-expo"
-          style={{ width: `${pct}%` }}
-        />
+          style={{
+            height: 6,
+            borderRadius: 3,
+            background: "#F0F2F5",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${pct}%`,
+              borderRadius: 3,
+              background: score >= 0.08
+                ? "linear-gradient(90deg, #00B42A, #52C41A)"
+                : "linear-gradient(90deg, #FF7D00, #FFA940)",
+              transition: "width 0.6s ease",
+            }}
+          />
+        </div>
       </div>
-      <span className="font-mono text-2xs tabular-nums text-signal">
-        {score.toFixed(3)}
-      </span>
+      <Tooltip title={`相似度分数: ${score.toFixed(4)}`}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: score >= 0.08 ? "#00B42A" : "#FF7D00",
+            fontFamily: "ui-monospace, monospace",
+            minWidth: 40,
+            textAlign: "right",
+          }}
+        >
+          {score.toFixed(2)}
+        </Text>
+      </Tooltip>
     </div>
   );
 }
 
-/**
- * @component TracePanel
- * @description 可观测性面板 —— 竖向时间轴展示 RAG 全链路。
- *
- *   三步时间轴：
- *   ① Query       原始问题
- *   ② Retrieval   召回资产列表 + 相似度分数
- *   ③ Generation  回答生成 + grounded 状态
- *
- *   无召回时显示红色警告，grounded=false 时用 danger Badge 标记。
- */
-export function TracePanel({ trace }: { trace: AgentTrace }) {
+/* 流动连接线 */
+function FlowConnector() {
   return (
-    <div className="rounded-xl border border-border-light bg-canvas/70 p-5">
-      {/* 头部 */}
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-display text-xs font-semibold tracking-tight text-ink-800">
-          Agent Trace
-        </h3>
-        <time className="font-mono text-2xs text-ink-400">
-          {new Date(trace.createdAt).toLocaleTimeString("zh-CN", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })}
-        </time>
-      </div>
-
-      {/* 时间轴 */}
-      <ol className="relative space-y-0 border-l-2 border-border-light">
-        {/* Step 1 — Query */}
-        <li className="relative pb-5 pl-6">
-          <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border-light bg-surface">
-            <Search size={10} className="text-ink-400" />
-          </span>
-          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">
-            Query
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-800">
-            {trace.query}
-          </p>
-        </li>
-
-        {/* Step 2 — Retrieval */}
-        <li className="relative pb-5 pl-6">
-          <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border-light bg-surface">
-            <FileText size={10} className="text-ink-400" />
-          </span>
-          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">
-            Retrieval · Top {trace.retrievedAssets.length}
-          </p>
-
-          {trace.retrievedAssets.length === 0 ? (
-            <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-danger/15 bg-danger-soft px-3 py-2">
-              <AlertTriangle size={13} className="text-danger" />
-              <span className="text-xs text-danger">未召回任何相关资产</span>
-            </div>
-          ) : (
-            <ul className="mt-2 space-y-1.5">
-              {trace.retrievedAssets.map((r, i) => (
-                <li
-                  key={r.assetId}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border-light bg-surface px-3 py-2 transition-colors hover:border-brand/20"
-                >
-                  <span className="min-w-0 truncate text-xs text-ink-700">
-                    <span className="mr-2 font-mono text-2xs text-ink-300">
-                      #{i + 1}
-                    </span>
-                    {r.title}
-                  </span>
-                  <ScoreBar score={r.score} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </li>
-
-        {/* Step 3 — Generation */}
-        <li className="relative pl-6">
-          <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border-light bg-surface">
-            <Brain size={10} className="text-ink-400" />
-          </span>
-          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">
-            Generation
-          </p>
-          <div className="mt-1.5 flex items-center gap-2">
-            <Badge tone={trace.grounded ? "success" : "danger"}>
-              {trace.grounded ? "grounded" : "not grounded"}
-            </Badge>
-            <span className="text-2xs text-ink-400">
-              {trace.references.length} 个引用来源
-            </span>
-          </div>
-        </li>
-      </ol>
+    <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
+      <div
+        className="flow-line"
+        style={{
+          width: 2,
+          height: 24,
+          borderRadius: 1,
+        }}
+      />
     </div>
+  );
+}
+
+/* 步骤节点 */
+function StepNode({
+  icon,
+  label,
+  detail,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  detail?: string;
+  color: string;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `${color}15`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+      <div>
+        <Text strong style={{ fontSize: 13, display: "block" }}>
+          {label}
+        </Text>
+        {detail && (
+          <Text style={{ fontSize: 11, color: "#86909C" }}>{detail}</Text>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function TracePanel({ trace }: { trace: AgentTrace }) {
+  const hasResults = trace.retrievedAssets.length > 0;
+
+  return (
+    <Card
+      size="small"
+      style={{ borderRadius: 12, background: "#FAFBFC" }}
+      styles={{ body: { padding: 16 } }}
+    >
+      <Space size={4} style={{ marginBottom: 12 }}>
+        <ThunderboltOutlined style={{ fontSize: 13, color: "#165DFF" }} />
+        <Text strong style={{ fontSize: 13, color: "#1D2129" }}>
+          Agent Trace · 审计链路
+        </Text>
+      </Space>
+
+      {/* 用户提问 */}
+      <StepNode
+        icon={<SearchOutlined style={{ fontSize: 16 }} />}
+        label="用户提问"
+        detail={`"${trace.query}"`}
+        color="#165DFF"
+      />
+
+      <FlowConnector />
+
+      {/* 检索阶段 */}
+      <StepNode
+        icon={<FileTextOutlined style={{ fontSize: 16 }} />}
+        label="向量检索"
+        detail={`匹配 ${trace.retrievedAssets.length} 条文档`}
+        color="#722ED1"
+      />
+
+      {/* 检索结果详情 */}
+      {hasResults && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 48 }}>
+          {trace.retrievedAssets.map((result) => (
+            <ScoreBar key={result.assetId} score={result.score} label={result.title} />
+          ))}
+        </div>
+      )}
+
+      {!hasResults && (
+        <div style={{ marginTop: 10, paddingLeft: 48 }}>
+          <Tag
+            style={{
+              borderRadius: 6,
+              border: "none",
+              background: "#FFECEC",
+              color: "#F53F3F",
+              fontSize: 12,
+            }}
+          >
+            <CloseCircleOutlined /> 无匹配文档
+          </Tag>
+        </div>
+      )}
+
+      <FlowConnector />
+
+      {/* 生成阶段 */}
+      <StepNode
+        icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
+        label="模型生成"
+        detail={hasResults ? "基于 Top-3 检索片段生成回答" : "无可用片段，提示用户补充知识"}
+        color="#00B42A"
+      />
+
+      {/* 回答摘要 */}
+      <div style={{ marginTop: 10, paddingLeft: 48, display: "flex", alignItems: "flex-start", gap: 6 }}>
+        <CheckCircleOutlined style={{ fontSize: 13, color: "#00B42A", marginTop: 2 }} />
+        <div
+          style={{
+            fontSize: 12,
+            color: "#4E5969",
+            lineHeight: 1.6,
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {trace.finalAnswer}
+        </div>
+      </div>
+    </Card>
   );
 }
