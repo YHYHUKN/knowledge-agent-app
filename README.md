@@ -23,22 +23,26 @@ npm run dev
 ## 目录结构
 
 ```
-app/
-  api/assets/route.ts        GET/POST 资产
-  api/search/route.ts        POST 检索
-  api/agent/chat/route.ts    POST Agent 问答
-  page.tsx                   首页
-  layout.tsx / globals.css
-lib/
-  types.ts     核心类型定义
-  data.ts      内存存储 + 初始数据
-  search.ts    检索打分逻辑
-  agent.ts     回答生成逻辑（仅基于检索结果）
-  utils.ts     通用工具函数
+app/                        Next.js App Router（页面 + API Route）
+ ├─ layout.tsx              根布局
+ ├─ page.tsx                首页入口
+ ├─ globals.css             全局样式
+ └─ api/                    后端接口（内存存储）
+      ├─ assets/route.ts      GET/POST 资产管理
+      ├─ search/route.ts      POST 关键词检索 Top-3
+      └─ agent/chat/route.ts  POST Agent 问答全链路
+lib/                        核心逻辑层（纯函数，可单测）
+ ├─ types.ts                 全局 TS 类型定义
+ ├─ data.ts                  globalThis 内存存储 + 种子数据
+ ├─ search.ts                混合分词 + 加权打分检索算法
+ ├─ agent.ts                 基于检索结果的回答合成
+ └─ utils.ts                 通用工具函数
 components/
-  ui/          基础组件（Button/Card/Dialog/Input...）
-  app/         业务组件（资产列表、新增表单、对话面板、Trace 面板）
+ ├─ ui/                      基础 UI 组件（Button/Card/Dialog/Input/Feedback）
+ └─ app/                     业务组件（Workbench/AssetList/AssetFormDialog/ChatPanel/TracePanel）
 ```
+
+> 完整项目结构（含数据流向图、组件层级树、各模块职责速查）见 [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 
 ---
 
