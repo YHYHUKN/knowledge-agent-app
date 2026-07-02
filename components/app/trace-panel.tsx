@@ -12,40 +12,142 @@ import { AgentTrace } from "@/lib/types";
 
 const { Text } = Typography;
 
-/* 相似度进度条 */
-function ScoreBar({ score, label }: { score: number; label: string }) {
-  const pct = Math.round(score * 100);
+/** 格式化日期字符串为 YYYY-MM-DD HH:mm */
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso;
+  }
+}
+
+/* 检索资产卡片：展示完整字段（title + content + tags + createdAt + score） */
+function RetrievedAssetCard({
+  result,
+  rank,
+}: {
+  result: AgentTrace["retrievedAssets"][number];
+  rank: number;
+}) {
+  const pct = Math.round(result.score * 100);
+  const isHighScore = result.score >= 0.08;
 
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "6px 10px",
         borderRadius: 8,
-        background: score >= 0.08 ? "#F0FFF4" : "#FFF7F0",
-        border: `1px solid ${score >= 0.08 ? "#D9F7E9" : "#FFE7D4"}`,
+        border: `1px solid ${isHighScore ? "#D9F7E9" : "#FFE7D4"}`,
+        background: isHighScore ? "#FAFFFE" : "#FFFBF7",
+        overflow: "hidden",
       }}
     >
-      <Text style={{ fontSize: 12, color: "#4E5969", flexShrink: 0, maxWidth: 100 }} ellipsis>
-        {label}
-      </Text>
-      <div style={{ flex: 1 }}>
-        <div
+      {/* 卡片头部：标题 + 排名 + 分数 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 12px",
+          borderBottom: `1px solid ${isHighScore ? "#D9F7E9" : "#FFE7D4"}`,
+          background: isHighScore ? "#F0FFF4" : "#FFF7F0",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: isHighScore ? "#00B42A" : "#FF7D00",
+              flexShrink: 0,
+            }}
+          >
+            #{rank}
+          </Text>
+          <Text
+            strong
+            style={{
+              fontSize: 13,
+              color: "#1D2129",
+              flex: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {result.title}
+          </Text>
+        </div>
+        <Space size={4}>
+          <Tooltip title={`相似度分数: ${result.score.toFixed(4)}`}>
+            <Tag
+              style={{
+                borderRadius: 6,
+                border: "none",
+                fontSize: 11,
+                fontWeight: 600,
+                color: isHighScore ? "#00B42A" : "#FF7D00",
+                background: isHighScore ? "#D9F7E9" : "#FFE7D4",
+                margin: 0,
+              }}
+            >
+              {pct}%
+            </Tag>
+          </Tooltip>
+        </Space>
+      </div>
+
+      {/* 正文内容（完整展示） */}
+      <div style={{ padding: "8px 12px" }}>
+        <Text
           style={{
-            height: 6,
-            borderRadius: 3,
-            background: "#F0F2F5",
-            overflow: "hidden",
+            fontSize: 12,
+            color: "#4E5969",
+            lineHeight: 1.7,
+            display: "block",
+            marginBottom: 8,
           }}
         >
+          {result.content}
+        </Text>
+
+        {/* 底部标签 + 创建时间 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Space size={4}>
+            {result.tags.map((tag) => (
+              <Tag
+                key={tag}
+                style={{
+                  borderRadius: 4,
+                  border: "none",
+                  background: "#EEF2FF",
+                  color: "#4F46E5",
+                  fontSize: 11,
+                  padding: "0 6px",
+                  margin: 0,
+                }}
+              >
+                {tag}
+              </Tag>
+            ))}
+          </Space>
+          <Text style={{ fontSize: 11, color: "#BCC1CC" }}>
+            {formatDate(result.createdAt)}
+          </Text>
+        </div>
+      </div>
+
+      {/* 分数进度条（始终展示） */}
+      <div style={{ padding: "0 12px 8px" }}>
+        <div style={{ height: 4, borderRadius: 2, background: "#F0F2F5", overflow: "hidden" }}>
           <div
             style={{
               height: "100%",
               width: `${pct}%`,
-              borderRadius: 3,
-              background: score >= 0.08
+              borderRadius: 2,
+              background: isHighScore
                 ? "linear-gradient(90deg, #00B42A, #52C41A)"
                 : "linear-gradient(90deg, #FF7D00, #FFA940)",
               transition: "width 0.6s ease",
@@ -53,20 +155,6 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
           />
         </div>
       </div>
-      <Tooltip title={`相似度分数: ${score.toFixed(4)}`}>
-        <Text
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: score >= 0.08 ? "#00B42A" : "#FF7D00",
-            fontFamily: "ui-monospace, monospace",
-            minWidth: 40,
-            textAlign: "right",
-          }}
-        >
-          {score.toFixed(2)}
-        </Text>
-      </Tooltip>
     </div>
   );
 }
@@ -162,11 +250,11 @@ export function TracePanel({ trace }: { trace: AgentTrace }) {
         color="#722ED1"
       />
 
-      {/* 检索结果详情 */}
+      {/* 检索结果详情：展示完整资产字段（title + content + tags + createdAt + score） */}
       {hasResults && (
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 48 }}>
-          {trace.retrievedAssets.map((result) => (
-            <ScoreBar key={result.assetId} score={result.score} label={result.title} />
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, paddingLeft: 48 }}>
+          {trace.retrievedAssets.map((result, idx) => (
+            <RetrievedAssetCard key={result.assetId} result={result} rank={idx + 1} />
           ))}
         </div>
       )}

@@ -20,7 +20,7 @@ interface ChatPanelProps {
   hasAssets: boolean;
   chatHistory: ChatEntry[];
   onSend: (query: string) => Promise<{ trace: AgentTrace }>;
-  onHistoryChange: (history: ChatEntry[]) => void;
+  onHistoryChange: React.Dispatch<React.SetStateAction<ChatEntry[]>>;
 }
 
 export function ChatPanel({ hasAssets, chatHistory, onSend, onHistoryChange }: ChatPanelProps) {
@@ -35,22 +35,7 @@ export function ChatPanel({ hasAssets, chatHistory, onSend, onHistoryChange }: C
     }
   }, [chatHistory]);
 
-  /* 流式打字动画 */
-  const streamAnswer = (entryId: string, fullAnswer: string) => {
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      onHistoryChange(
-        chatHistory.map((entry) =>
-          entry.id === entryId
-            ? { ...entry, streamedAnswer: fullAnswer.slice(0, i * 3), streaming: i * 3 < fullAnswer.length }
-            : entry
-        )
-      );
-      if (i * 3 >= fullAnswer.length) clearInterval(interval);
-    }, 20);
-  };
-
+  /* 发送消息 */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const query = input.trim();
@@ -66,9 +51,16 @@ export function ChatPanel({ hasAssets, chatHistory, onSend, onHistoryChange }: C
 
     try {
       const { trace } = await onSend(query);
-      const finalEntry: ChatEntry = { id: entryId, query, trace, streaming: false, streamedAnswer: "" };
+      const finalEntry: ChatEntry = { id: entryId, query, trace, streaming: true, streamedAnswer: trace.finalAnswer };
       onHistoryChange(updated.map((e) => (e.id === entryId ? finalEntry : e)));
-      streamAnswer(entryId, trace.finalAnswer);
+      // 打字光效：先出内容，光标延迟消失（视觉上像在打字，实为即时响应）
+      setTimeout(() => {
+        onHistoryChange((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId ? { ...entry, streaming: false } : entry
+          )
+        );
+      }, 600);
     } catch {
       const errEntry: ChatEntry = {
         id: entryId,

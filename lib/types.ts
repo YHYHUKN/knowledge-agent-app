@@ -22,14 +22,21 @@ export interface KnowledgeAsset {
 }
 
 /** 检索结果：searchAssets 命中的单条记录。
- *  不返回完整 KnowledgeAsset，只返回展示引用所需的轻量字段。
- *  @field assetId - 源资产 ID，前端可用于反查详情
- *  @field title   - 资产标题，直接用于引用展示
- *  @field snippet - 命中关键词附近的正文片段（约 80 字），含上下文
- *  @field score   - 归一化相似度分数，0~1，仅展示用（非检索阈值直接用原始分） */
+ *  返回完整资产字段（content/tags/createdAt），满足规范要求
+ *  "检索返回的3条完整知识库资产"，前端 Trace 面板直接渲染所有字段。
+ *  @field assetId   - 源资产 ID，前端可用于反查详情
+ *  @field title     - 资产标题，引用展示
+ *  @field content   - 完整正文内容，Trace 面板完整展示
+ *  @field tags      - 标签数组，Trace 面板完整展示
+ *  @field createdAt - 创建时间，Trace 面板完整展示
+ *  @field snippet  - 命中关键词附近的正文片段（约 80 字），含上下文
+ *  @field score    - 归一化相似度分数，0~1，进度条可视化展示 */
 export interface SearchResult {
   assetId: string;
   title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
   snippet: string;
   score: number; // 0 ~ 1，归一化后的相似度分数
 }

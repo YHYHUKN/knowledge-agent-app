@@ -29,7 +29,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <span className="font-mono text-[11px] text-ink-300">内存存储 · 单租户演示</span>
+          <span className="font-mono text-[11px] text-ink-300">localStorage 持久化 · 单租户演示</span>
         </div>
       </header>
       <Workbench />

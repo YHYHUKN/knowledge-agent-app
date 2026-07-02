@@ -100,6 +100,9 @@ export function searchAssets(query: string): SearchResult[] {
     return {
       assetId: asset.id,
       title: asset.title,
+      content: asset.content,
+      tags: asset.tags,
+      createdAt: asset.createdAt,
       snippet: buildSnippet(asset.content, queryTokens),
       score: Math.round(normalized * 1000) / 1000,
     };

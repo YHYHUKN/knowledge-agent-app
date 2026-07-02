@@ -8,6 +8,7 @@ import { AssetList } from "@/components/app/asset-list";
 import { AssetFormDialog } from "@/components/app/asset-form-dialog";
 import { ChatPanel } from "@/components/app/chat-panel";
 import { VisualizationPanels } from "@/components/app/visualization-panels";
+import { loadAssets, saveAssets } from "@/lib/client-storage";
 
 const { Title, Text } = Typography;
 
@@ -25,26 +26,34 @@ export function Workbench() {
   const [formOpen, setFormOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatEntry[]>([]);
 
-  /* 加载资产列表 */
-  const fetchAssets = useCallback(async () => {
-    setLoading(true);
+  /* 加载资产列表：优先读 localStorage（无闪烁），后台静默同步 API */
+  const syncFromApi = useCallback(async () => {
     try {
       const res = await fetch("/api/assets");
       const data = await res.json();
-      setAssets(data.assets ?? []);
-    } finally {
-      setLoading(false);
+      const apiAssets: KnowledgeAsset[] = data.assets ?? [];
+      // API 数据覆盖到 localStorage，保持一致性（清除本地脏数据）
+      saveAssets(apiAssets);
+      setAssets(apiAssets);
+    } catch {
+      // API 失败时，保留本地 localStorage 数据（不覆盖）
     }
   }, []);
 
   useEffect(() => {
-    fetchAssets();
-  }, [fetchAssets]);
+    // 第一步：立即从 localStorage 读取（同步，无闪烁）
+    const cached = loadAssets();
+    setAssets(cached);
+    setLoading(cached.length === 0); // 有缓存时不显示骨架屏
 
-  /* 新增资产回调 */
+    // 第二步：后台从 API 同步（异步，失败不影响已有数据）
+    syncFromApi().finally(() => setLoading(false));
+  }, [syncFromApi]);
+
+  /* 新增资产回调：立即写入 localStorage，刷新列表，同步调用 API */
   const handleAssetCreated = () => {
     setFormOpen(false);
-    fetchAssets();
+    syncFromApi(); // API 返回后会自动写入 localStorage
   };
 
   /* 发送消息回调 */
@@ -54,7 +63,14 @@ export function Workbench() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
     });
-    return res.json();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      throw new Error(err.error ?? `请求失败 (${res.status})`);
+    }
+    const json = await res.json();
+    // 调试：确认接口返回的 trace 结构
+    console.log("[handleSend] query:", query, "=> trace:", JSON.stringify(json.trace?.finalAnswer)?.slice(0, 80));
+    return json;
   };
 
   return (
@@ -85,7 +101,7 @@ export function Workbench() {
                 知识资产
               </Title>
               <Text style={{ fontSize: 12, color: "#86909C" }}>
-                {assets.length}条记录 · 内存存储
+                {assets.length}条记录 · localStorage 持久化
               </Text>
             </Space>
 
@@ -106,7 +122,7 @@ export function Workbench() {
           <AssetList
             assets={assets}
             loading={loading}
-            onRefresh={fetchAssets}
+            onRefresh={syncFromApi}
           />
         </Col>
 

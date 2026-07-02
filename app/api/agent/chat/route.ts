@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "问题（query）不能为空" }, { status: 400 });
   }
 
+  // 调试：打印收到的 query 字节信息（用于排查乱码问题）
+  console.log("[agent/chat] 收到的 query:", query, "| bytes:", Buffer.from(query).toString("hex"));
+
   const trace = runAgentChat(query);
   return NextResponse.json({ trace });
 }
