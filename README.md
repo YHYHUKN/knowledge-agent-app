@@ -28,36 +28,43 @@ npm run build && npm start  # 生产模式
 ## 二、项目结构
 
 ```
-F:\笔123试\knowledge-agent-app\
+knowledge-agent-app/
 ├── start-dev.bat              ← 双击即可启动（开发模式）
-├── start-prod.bat            ← 双击启动（生产模式）
+├── start-prod.bat             ← 双击启动（生产模式）
 ├── stop.bat                   ← 停止服务器
-├── app/                      Next.js App Router（页面 + API）
-│   ├── layout.tsx            根布局（含 Ant Design ConfigProvider 双主题）
-│   ├── page.tsx              首页入口
+├── HOW_TO_START.md            ← 启动方式详细说明
+├── TECH_STACK.md              ← 技术选型说明
+├── UNFINISHED_ITEMS.md        ← 未完成事项说明
+├── ITERATION_PLAN.md          ← 继续迭代优化方向
+├── PROJECT_STRUCTURE.md       ← 完整项目结构文档（含数据流向图 / 组件树）
+│
+├── app/                       Next.js App Router（页面 + API）
+│   ├── layout.tsx             根布局（含 Ant Design ConfigProvider 双主题）
+│   ├── page.tsx               首页入口
 │   ├── globals.css            全局样式（CSS 变量 / 动画 / 响应式断点）
-│   └── api/                  后端接口
-│       ├── assets/route.ts   GET（列表）/ POST（新增）
-│       ├── search/route.ts   POST（关键词检索 Top-3）
+│   └── api/                   后端接口
+│       ├── assets/route.ts    GET（列表）/ POST（新增）
+│       ├── search/route.ts    POST（关键词检索 Top-3）
 │       └── agent/chat/route.ts POST（Agent RAG 问答）
-├── lib/                      核心业务逻辑（纯函数，可单测）
-│   ├── types.ts              全局 TypeScript 类型定义
-│   ├── data.ts               globalThis 内存存储 + 种子数据
-│   ├── search.ts             关键词打分检索算法
-│   ├── agent.ts              基于检索结果合成回答（Mock LLM）
-│   ├── utils.ts              工具函数（cn / formatDateTime）
-│   └── client-storage.ts     localStorage 持久化读写
+│
+├── lib/                       核心业务逻辑（纯函数，可单测）
+│   ├── types.ts               全局 TypeScript 类型定义
+│   ├── data.ts                globalThis 内存存储 + 种子数据
+│   ├── search.ts              关键词打分检索算法
+│   ├── agent.ts               基于检索结果合成回答（Mock LLM）
+│   ├── utils.ts               工具函数（cn / formatDateTime）
+│   └── client-storage.ts      localStorage 持久化读写
+│
 ├── components/
-│   ├── app/                 业务组件
-│   │   ├── workbench.tsx      主布局（双栏 + 状态提升）
-│   │   ├── asset-list.tsx     知识资产列表（骨架屏 / 空状态）
+│   ├── app/                   业务组件
+│   │   ├── workbench.tsx       主布局（双栏 + 状态提升）
+│   │   ├── asset-list.tsx      知识资产列表（骨架屏 / 空状态）
 │   │   ├── asset-form-dialog.tsx 新增资产弹窗表单
-│   │   ├── chat-panel.tsx    Agent 问答对话面板
-│   │   ├── trace-panel.tsx   Trace 检索过程可视化面板
+│   │   ├── chat-panel.tsx      Agent 问答对话面板
+│   │   ├── trace-panel.tsx     Trace 检索过程可视化面板
 │   │   └── visualization-panels.tsx 可视化特色面板（链路/权限/图表）
-│   └── ui/                   基础 UI 组件（Button / Card / Dialog / Input）
-└── PROJECT_STRUCTURE.md      完整项目结构文档（含数据流向图 / 组件树）
-```
+│   └── ui/                    基础 UI 组件（Button / Card / Dialog / Input）
+└── README.md                  ← 本文件
 
 ---
 
