@@ -1,6 +1,47 @@
 # AI 知识资产问答工作台
 
-基于检索增强生成（RAG）思路实现的 ToB 知识库问答工作台。用户可以维护知识资产列表，并通过 Agent 对话框提问；Agent 严格基于检索到的资产内容作答，并展示完整的检索 → 生成全链路 Trace。
+> 基于检索增强生成（RAG）思路实现的 ToB 知识库问答工作台。用户可维护知识资产列表，通过 Agent 对话框提问；Agent 严格基于检索到的资产内容作答，并展示完整的「检索 → 生成」全链路 Trace。
+
+![演示动图](docs/demo.gif)
+
+---
+
+## 目录
+
+- [在线演示](#在线演示)
+- [项目截图](#项目截图)
+- [一、启动方式](#一启动方式)
+- [二、项目结构](#二项目结构)
+- [三、必答 5 问](#三必答-5-问)
+- [四、技术栈](#四技术栈)
+- [五、Roadmap](#五roadmap)
+
+---
+
+## 在线演示
+
+| 平台 | 链接 |
+|------|------|
+| Vercel | _部署后填入：https://your-app.vercel.app_ |
+| GitHub | https://github.com/YHYHUKN/knowledge-agent-app |
+
+---
+
+## 项目截图
+
+### 1. 工作台主界面
+![工作台主界面](docs/screenshots/01-workbench.png)
+
+### 2. 新增知识资产
+![新增知识资产](docs/screenshots/02-add-asset.png)
+
+### 3. Agent 问答
+![Agent 问答](docs/screenshots/03-chat.png)
+
+### 4. Trace 检索链路可视化
+![Trace 检索链路](docs/screenshots/04-trace.png)
+
+> 📌 截图规范：1920×1080、亮色 / 暗色各一组、文件大小 < 500KB、命名 `01-xxx.png`。
 
 ---
 
@@ -38,6 +79,10 @@ knowledge-agent-app/
 ├── ITERATION_PLAN.md          ← 继续迭代优化方向
 ├── PROJECT_STRUCTURE.md       ← 完整项目结构文档（含数据流向图 / 组件树）
 │
+├── docs/                      ← 演示与文档
+│   ├── demo.gif               ← 项目演示录屏
+│   └── screenshots/           ← 关键页面截图
+│
 ├── app/                       Next.js App Router（页面 + API）
 │   ├── layout.tsx             根布局（含 Ant Design ConfigProvider 双主题）
 │   ├── page.tsx               首页入口
@@ -65,6 +110,7 @@ knowledge-agent-app/
 │   │   └── visualization-panels.tsx 可视化特色面板（链路/权限/图表）
 │   └── ui/                    基础 UI 组件（Button / Card / Dialog / Input）
 └── README.md                  ← 本文件
+```
 
 ---
 
@@ -160,3 +206,32 @@ type AgentTrace = {
 | **可观测性缺口** | 线上问题无法追溯具体哪一步出错 | Trace 持久化到日志 + 告警 + 人工复核 |
 | **内容合规与权限泄露** | 低权限用户通过问答绕过权限拿到敏感内容 | 分级权限控制 + 输入/输出内容审核 |
 
+---
+
+## 四、技术栈
+
+- **框架**：Next.js 14.2 (App Router) + TypeScript 5.5（零 `any` 逃逸）
+- **UI**：Ant Design 5 + Tailwind CSS（双主题：亮色 / 暗色）
+- **可视化**：Recharts
+- **存储**：localStorage（客户端）+ `globalThis`（服务端内存）
+- **后端**：Next.js API Routes（4 个接口，纯函数库式架构）
+
+详细技术选型见 [TECH_STACK.md](./TECH_STACK.md)。
+
+---
+
+## 五、Roadmap
+
+详见 [ITERATION_PLAN.md](./ITERATION_PLAN.md) 和 [UNFINISHED_ITEMS.md](./UNFINISHED_ITEMS.md)。
+
+短期迭代：
+- 接入真实向量数据库（Pinecone / pgvector）
+- 引入真实 LLM（OpenAI / DeepSeek）替换 Mock 生成
+- 多租户隔离 + JWT 鉴权
+- 部署到 Vercel + Upstash Redis 持久化
+
+---
+
+## 许可证
+
+本项目为笔试题演示项目，MIT License。
