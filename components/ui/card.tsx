@@ -1,20 +1,15 @@
-/**
- * @module card
- * @description Card（卡片容器）和 Badge（标签）。
- *              Card: 白底 + 细微阴影 + 圆角边框，承载列表项和对话气泡
- *              Badge: 等宽字体 11px 标签，三种色阶（neutral/brand/signal）
- *                     - neutral: 灰底 → 标签分类通用
- *                     - brand: 品牌蓝底 → 引用来源
- *                     - signal: 琥珀底 → grounded 状态标记
- */
 import { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Card —— 通用卡片容器。
+ *   用于资产列表项和对话记录，提供一致的圆角 / 边框 / 阴影。
+ */
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-md border border-border bg-surface shadow-card",
+        "rounded-lg border border-border-light bg-surface shadow-card transition-shadow",
         className
       )}
       {...props}
@@ -22,21 +17,34 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   );
 }
 
+/**
+ * Badge —— 行内标签。
+ *   tone 四种语义：
+ *   - neutral: 灰底 —— 分类标签通用
+ *   - brand:   蓝底 —— 引用来源 / 品牌关联
+ *   - signal:  琥珀底 —— 相似度分数
+ *   - success: 绿底 —— grounded 确认
+ *   - danger:  红底 —— 异常状态
+ */
+type BadgeTone = "neutral" | "brand" | "signal" | "success" | "danger";
+
 export function Badge({
   className,
   tone = "neutral",
   ...props
-}: HTMLAttributes<HTMLSpanElement> & { tone?: "neutral" | "brand" | "signal" }) {
+}: HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) {
   const toneClasses = {
-    neutral: "bg-canvas text-ink-500 border-border",
-    brand: "bg-brand-soft text-brand border-transparent",
-    signal: "bg-signal-soft text-signal border-transparent",
+    neutral: "bg-canvas-muted text-ink-600",
+    brand: "bg-brand-soft text-brand",
+    signal: "bg-signal-soft text-signal",
+    success: "bg-success-soft text-success",
+    danger: "bg-danger-soft text-danger",
   }[tone];
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[11px] font-mono leading-none",
+        "inline-flex items-center rounded-md px-2 py-0.5 text-2xs font-semibold leading-none",
         toneClasses,
         className
       )}

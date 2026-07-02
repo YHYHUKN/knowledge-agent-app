@@ -2,88 +2,96 @@
 
 import { AgentTrace } from "@/lib/types";
 import { Badge } from "@/components/ui/card";
-import { AlertTriangle, CircleDot } from "lucide-react";
+import { AlertTriangle, Circle, Search, Brain, FileText } from "lucide-react";
 
 /**
  * @component ScoreBar
- * @description 相似度分数可视化条 —— 琥珀色进度条 + 精确数值。
- *              score 为 0~1 浮点数，转换为百分比宽度展示。
+ * @description 相似度分数条 —— 琥珀色填充 + 精确数值。
+ *              score ∈ [0, 1]，按百分比渲染宽度。
  */
 function ScoreBar({ score }: { score: number }) {
   const pct = Math.round(score * 100);
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-canvas">
+    <div className="flex shrink-0 items-center gap-2">
+      <div className="h-1 w-14 overflow-hidden rounded-full bg-canvas-muted">
         <div
-          className="h-full rounded-full bg-signal"
+          className="h-full rounded-full bg-signal transition-all duration-500 ease-out-expo"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-mono text-[11px] text-signal">{score.toFixed(3)}</span>
+      <span className="font-mono text-2xs tabular-nums text-signal">
+        {score.toFixed(3)}
+      </span>
     </div>
   );
 }
 
 /**
  * @component TracePanel
- * @description 可观测性面板 —— 用竖向时间轴展示一次 Agent 问答的完整处理链路。
+ * @description 可观测性面板 —— 竖向时间轴展示 RAG 全链路。
  *
- *   【三步时间轴】
- *   Step 1 — Query       : 展示用户原始问题
- *   Step 2 — Retrieval   : 展示每条召回资产的标题 + 相似度分数（ScoreBar），
- *                          无结果时显示红色 "未召回任何相关资产" 警告
- *   Step 3 — Generation  : 展示 grounded 状态 Badge + 引用来源数量
+ *   三步时间轴：
+ *   ① Query       原始问题
+ *   ② Retrieval   召回资产列表 + 相似度分数
+ *   ③ Generation  回答生成 + grounded 状态
  *
- *   【为什么用竖向 stepper 而非表格】
- *   时间轴编码了真实的处理顺序（先检索，后生成），这比表格的"属性-值"
- *   陈列更有叙事性，面试官/开发者一眼就能理解数据是如何一步步流转的。
+ *   无召回时显示红色警告，grounded=false 时用 danger Badge 标记。
  */
 export function TracePanel({ trace }: { trace: AgentTrace }) {
   return (
-    <div className="rounded-md border border-border bg-canvas/60 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-display text-[13px] font-medium text-ink-900">Agent Trace</h3>
-        <span className="font-mono text-[11px] text-ink-300">
-          {new Date(trace.createdAt).toLocaleTimeString("zh-CN")}
-        </span>
+    <div className="rounded-xl border border-border-light bg-canvas/70 p-5">
+      {/* 头部 */}
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-display text-xs font-semibold tracking-tight text-ink-800">
+          Agent Trace
+        </h3>
+        <time className="font-mono text-2xs text-ink-400">
+          {new Date(trace.createdAt).toLocaleTimeString("zh-CN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })}
+        </time>
       </div>
 
-      <ol className="relative space-y-4 border-l border-border pl-4">
-        {/* Step 1: Query */}
-        <li className="relative">
-          <CircleDot
-            size={14}
-            className="absolute -left-[21px] top-0.5 text-brand"
-          />
-          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-300">
+      {/* 时间轴 */}
+      <ol className="relative space-y-0 border-l-2 border-border-light">
+        {/* Step 1 — Query */}
+        <li className="relative pb-5 pl-6">
+          <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border-light bg-surface">
+            <Search size={10} className="text-ink-400" />
+          </span>
+          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">
             Query
           </p>
-          <p className="mt-0.5 text-[13px] text-ink-900">{trace.query}</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-800">
+            {trace.query}
+          </p>
         </li>
 
-        {/* Step 2: Retrieval */}
-        <li className="relative">
-          <CircleDot
-            size={14}
-            className="absolute -left-[21px] top-0.5 text-brand"
-          />
-          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-300">
+        {/* Step 2 — Retrieval */}
+        <li className="relative pb-5 pl-6">
+          <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border-light bg-surface">
+            <FileText size={10} className="text-ink-400" />
+          </span>
+          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">
             Retrieval · Top {trace.retrievedAssets.length}
           </p>
+
           {trace.retrievedAssets.length === 0 ? (
-            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-danger">
-              <AlertTriangle size={13} />
-              未召回任何相关资产
-            </p>
+            <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-danger/15 bg-danger-soft px-3 py-2">
+              <AlertTriangle size={13} className="text-danger" />
+              <span className="text-xs text-danger">未召回任何相关资产</span>
+            </div>
           ) : (
-            <ul className="mt-1.5 space-y-2">
+            <ul className="mt-2 space-y-1.5">
               {trace.retrievedAssets.map((r, i) => (
                 <li
                   key={r.assetId}
-                  className="flex items-center justify-between gap-3 rounded-sm bg-white px-2.5 py-1.5 border border-border"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border-light bg-surface px-3 py-2 transition-colors hover:border-brand/20"
                 >
-                  <span className="truncate text-[12.5px] text-ink-700">
-                    <span className="mr-1.5 font-mono text-[11px] text-ink-300">
+                  <span className="min-w-0 truncate text-xs text-ink-700">
+                    <span className="mr-2 font-mono text-2xs text-ink-300">
                       #{i + 1}
                     </span>
                     {r.title}
@@ -95,21 +103,20 @@ export function TracePanel({ trace }: { trace: AgentTrace }) {
           )}
         </li>
 
-        {/* Step 3: Generation */}
-        <li className="relative">
-          <CircleDot
-            size={14}
-            className="absolute -left-[21px] top-0.5 text-brand"
-          />
-          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-300">
+        {/* Step 3 — Generation */}
+        <li className="relative pl-6">
+          <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border-light bg-surface">
+            <Brain size={10} className="text-ink-400" />
+          </span>
+          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">
             Generation
           </p>
-          <div className="mt-0.5 flex items-center gap-2">
-            <Badge tone={trace.grounded ? "brand" : "neutral"}>
-              {trace.grounded ? "grounded=true" : "grounded=false"}
+          <div className="mt-1.5 flex items-center gap-2">
+            <Badge tone={trace.grounded ? "success" : "danger"}>
+              {trace.grounded ? "grounded" : "not grounded"}
             </Badge>
-            <span className="text-[12px] text-ink-500">
-              引用 {trace.references.length} 个来源
+            <span className="text-2xs text-ink-400">
+              {trace.references.length} 个引用来源
             </span>
           </div>
         </li>

@@ -1,11 +1,3 @@
-/**
- * @module dialog
- * @description Dialog 模态弹窗组件。
- *              - open=false 时返回 null（不渲染 DOM）
- *              - 背景蒙层点击 / Escape 键 → 关闭
- *              - 打开时锁定 body 滚动（overflow: hidden），关闭时恢复
- *              - 使用 role="dialog" + aria-modal="true" 确保无障碍
- */
 "use client";
 
 import { ReactNode, useEffect } from "react";
@@ -22,6 +14,7 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
+  // Escape 关闭 + body 滚动锁定
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -38,40 +31,48 @@ export function Dialog({ open, onClose, title, description, children, className 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 sm:items-center sm:py-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-16 sm:items-center">
+      {/* 背景蒙层 */}
       <div
-        className="fixed inset-0 bg-ink-900/40 backdrop-blur-[1px]"
+        className="fixed inset-0 animate-fade-in bg-ink-900/30 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
+
+      {/* 弹窗主体 */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
         className={cn(
-          "relative z-10 w-[calc(100%-2rem)] max-w-lg rounded-lg border border-border bg-surface shadow-pop",
-          "animate-in",
+          "relative z-10 w-full max-w-lg animate-scale-in rounded-xl border border-border-light bg-surface shadow-pop",
           className
         )}
       >
-        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+        {/* 标题栏 */}
+        <div className="flex items-start justify-between border-b border-border-light px-6 py-4">
           <div>
-            <h2 id="dialog-title" className="font-display text-base font-medium text-ink-900">
+            <h2
+              id="dialog-title"
+              className="font-display text-base font-semibold tracking-tight text-ink-900"
+            >
               {title}
             </h2>
             {description && (
-              <p className="mt-0.5 text-[13px] text-ink-500">{description}</p>
+              <p className="mt-1 text-xs text-ink-500">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
             aria-label="关闭"
-            className="rounded-md p-1 text-ink-300 hover:bg-canvas hover:text-ink-700"
+            className="rounded-lg p-1.5 text-ink-300 transition-colors hover:bg-canvas-muted hover:text-ink-600"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+
+        {/* 内容区 */}
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   );

@@ -2,45 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  background-color: #f6f7f9;
-  color: #111827;
-}
+/* ══════════════════════════════════════════════════════════════
+   设计基调：克制、洁净、专业
+   色板以冷灰为底，深墨蓝为唯一强调色，琥珀仅作语义信号。
+   不使用装饰色，不堆砌渐变，一切以信息层级为中心。
+   ══════════════════════════════════════════════════════════════ */
 
-* {
-  border-color: #e3e6eb;
-}
+@layer base {
+  html,
+  body {
+    background-color: #f2f4f7;
+    color: #1a1d28;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 
-::selection {
-  background-color: #eef1f8;
-  color: #2a3f73;
-}
+  * {
+    border-color: #e4e7ed;
+  }
 
-:focus-visible {
-  outline: 2px solid #2a3f73;
-  outline-offset: 2px;
-}
+  ::selection {
+    background-color: #e8ecf4;
+    color: #2a3f73;
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+  :focus-visible {
+    outline: 2px solid #2a3f73;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* 细滚动条 —— 不喧宾夺主 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #d1d5dd;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #b0b7c3;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
   }
 }
 
-/* 细滚动条，克制风格 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ══════════════════════════════════════════════════════════════
+   动画关键帧
+   原则：只做功能性微动效，不追求花哨
+   ══════════════════════════════════════════════════════════════ */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-::-webkit-scrollbar-thumb {
-  background-color: #c7ccd6;
-  border-radius: 8px;
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-::-webkit-scrollbar-track {
-  background-color: transparent;
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   动画工具类
+   ══════════════════════════════════════════════════════════════ */
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease both;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s ease both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease both;
+}
+
+/* 骨架屏脉冲 */
+.animate-shimmer {
+  background: linear-gradient(90deg, #eaecf2 25%, #f5f6f8 50%, #eaecf2 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
 }

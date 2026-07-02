@@ -1,23 +1,25 @@
-/**
- * @module feedback
- * @description 反馈态组件 —— 覆盖 Loading 和空数据两种兜底状态。
- *
- *   Skeleton: 骨架屏占位，animate-pulse 脉冲动画提供"正在加载"的视觉暗示
- *   EmptyState: 虚线边框居中插画，icon + title + description + 可选 action 按钮
- *               用于资产列表空数据（引导新增）和对话面板空数据（引导提问）
- */
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Skeleton —— 骨架屏占位。
+ *   使用 CSS shimmer 动画替代 Tailwind 默认的 animate-pulse，
+ *   视觉上更柔和、更有"正在加载"的方向感。
+ */
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-canvas", className)}
+      className={cn("animate-shimmer rounded-md", className)}
       aria-hidden="true"
     />
   );
 }
 
+/**
+ * EmptyState —— 空数据占位组件。
+ *   居中布局：icon + 标题 + 描述 + 可选 action 按钮。
+ *   用于资产列表无数据、对话面板无记录等场景。
+ */
 export function EmptyState({
   icon,
   title,
@@ -30,11 +32,21 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border px-6 py-10 text-center">
-      {icon && <div className="mb-1 text-ink-300">{icon}</div>}
-      <p className="text-sm font-medium text-ink-700">{title}</p>
-      {description && <p className="max-w-xs text-[13px] text-ink-500">{description}</p>}
-      {action && <div className="mt-2">{action}</div>}
+    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center animate-fade-in">
+      {icon && (
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-canvas-muted text-ink-300">
+          {icon}
+        </div>
+      )}
+      <div>
+        <p className="text-sm font-semibold text-ink-700">{title}</p>
+        {description && (
+          <p className="mt-1 max-w-xs text-xs leading-relaxed text-ink-400">
+            {description}
+          </p>
+        )}
+      </div>
+      {action && <div className="mt-1">{action}</div>}
     </div>
   );
 }
