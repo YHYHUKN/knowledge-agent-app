@@ -1,3 +1,9 @@
+/**
+ * @module input
+ * @description Input（单行）和 Textarea（多行）表单控件。
+ *              统一样式：白底、灰边框、focus 时 border 变品牌色 + 微光环。
+ *              使用 forwardRef 支持父组件 ref 转发。
+ */
 import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 

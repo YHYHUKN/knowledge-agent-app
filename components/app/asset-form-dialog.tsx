@@ -6,6 +6,25 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { KnowledgeAsset } from "@/lib/types";
 
+/**
+ * @component AssetFormDialog
+ * @description 新增知识资产弹窗表单。
+ *
+ *   【表单字段】
+ *   - 标题 (title)：必填，最长 100 字，单行 Input
+ *   - 内容 (content)：必填，最长 2000 字，多行 Textarea
+ *   - 标签 (tags)：选填，逗号分隔输入，提交时拆分成数组
+ *
+ *   【交互状态】
+ *   - 默认态：3 个表单字段 + 保存/取消按钮
+ *   - 提交中：所有输入框和按钮 disabled，按钮文案变为"保存中…"
+ *   - 验证失败：红色 error 提示（标题和内容均为必填）
+ *   - 提交成功：调用 onCreated 回调 → 重置表单 → 关闭弹窗
+ *   - 提交失败：展示 API 返回的 error 文案
+ *
+ *   【数据流】
+ *   Workbench → open/onClose 控制显隐 → 提交成功后 POST /api/assets → onCreated 通知父组件刷新列表
+ */
 export function AssetFormDialog({
   open,
   onClose,

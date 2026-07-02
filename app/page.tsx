@@ -1,3 +1,13 @@
+/**
+ * @page Home
+ * @description 首页 —— 整个应用唯一的页面路由。
+ *
+ *   【布局结构】
+ *   - 顶部 Header（h-16）：品牌 Logo + 标题 "知识资产问答工作台" + 右侧状态标签
+ *   - 主体 Workbench：双栏（左资产列表 + 右 Agent 问答）
+ *
+ *   所有路由逻辑在 App Router 单页内完成，无需多页面跳转。
+ */
 import { Workbench } from "@/components/app/workbench";
 import { Database } from "lucide-react";
 

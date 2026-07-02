@@ -1,3 +1,12 @@
+/**
+ * @module card
+ * @description Card（卡片容器）和 Badge（标签）。
+ *              Card: 白底 + 细微阴影 + 圆角边框，承载列表项和对话气泡
+ *              Badge: 等宽字体 11px 标签，三种色阶（neutral/brand/signal）
+ *                     - neutral: 灰底 → 标签分类通用
+ *                     - brand: 品牌蓝底 → 引用来源
+ *                     - signal: 琥珀底 → grounded 状态标记
+ */
 import { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 

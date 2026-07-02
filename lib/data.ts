@@ -1,17 +1,28 @@
 import { KnowledgeAsset } from "./types";
 
-// ── 内存存储 ──────────────────────────────────────────────────
-// 说明：数据仅存在于 Node 进程内存中，服务重启 / 重新部署后清空。
-// 使用 globalThis 挂载，是为了避免 Next.js dev 模式下模块热重载
-// (HMR) 导致内存数组被重复初始化、丢失已新增的数据。
-// 生产环境下这不是必须的，但保留无害。
+/**
+ * @module data
+ * @description 内存存储层 —— 项目唯一的"数据库"。
+ *
+ *   【设计决策】
+ *   - 数据仅存于 Node 进程内存中，服务重启后清空（符合笔试"非持久化"要求）
+ *   - 使用 globalThis 挂载数组，而非模块级 let/const：
+ *     Next.js dev 模式下会热重载（HMR）模块，如果数组存在模块作用域，
+ *     每次 HMR 都会重新初始化为种子数据，导致用户新增的资产丢失。
+ *     globalThis 不受 HMR 影响，保证 dev 体验与 prod 一致。
+ *   - 生产环境下 globalThis 不是必须的，但保留无害。
+ *   - 替换为真实数据库时，只需改写本文件的四个导出函数，
+ *     其余所有代码只依赖 KnowledgeAsset 接口，无需修改。
+ */
 
+/** globalThis 上挂载的知识资产数组的类型标记 */
 interface GlobalStore {
   __KNOWLEDGE_ASSETS__?: KnowledgeAsset[];
 }
 
 const globalStore = globalThis as unknown as GlobalStore;
 
+/** 初始种子数据：3 条内置知识资产，首次加载时写入 */
 function seedAssets(): KnowledgeAsset[] {
   const now = Date.now();
   return [
@@ -42,20 +53,24 @@ function seedAssets(): KnowledgeAsset[] {
   ];
 }
 
+/** 首次加载时初始化——如果 globalThis 上没有数据，写入种子数据 */
 if (!globalStore.__KNOWLEDGE_ASSETS__) {
   globalStore.__KNOWLEDGE_ASSETS__ = seedAssets();
 }
 
+/** 获取全部资产，按创建时间倒序（最新在前），返回浅拷贝防止外部篡改 */
 export function getAllAssets(): KnowledgeAsset[] {
   return [...globalStore.__KNOWLEDGE_ASSETS__!].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
+/** 按 ID 精确查找单条资产 */
 export function getAssetById(id: string): KnowledgeAsset | undefined {
   return globalStore.__KNOWLEDGE_ASSETS__!.find((a) => a.id === id);
 }
 
+/** 新增资产：生成唯一 ID（时间戳+随机后缀），写入内存数组，返回完整对象 */
 export function addAsset(input: {
   title: string;
   content: string;

@@ -7,6 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Skeleton, EmptyState } from "@/components/ui/feedback";
 import { formatDateTime } from "@/lib/utils";
 
+/**
+ * @component AssetList
+ * @description 知识资产列表 —— 左侧栏面板。
+ *
+ *   【三种状态的渲染策略】
+ *   1. loading=true          → 3 条骨架屏（Skeleton 脉冲动画），提供即时视觉反馈
+ *   2. loading=false + 空数据 → EmptyState 插画，引导用户新增资产
+ *   3. loading=false + 有数据 → 资产卡片列表，每张展示标题/正文摘要(2行)/标签/时间
+ *
+ *   【数据流向】
+ *   外部 Workbench 通过 props 传入 assets[] 和 loading，本组件不自行请求数据。
+ *   新增按钮点击 → 触发父组件 onAdd → 打开 AssetFormDialog。
+ */
 export function AssetList({
   assets,
   loading,

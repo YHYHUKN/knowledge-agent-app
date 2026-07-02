@@ -1,3 +1,10 @@
+/**
+ * @module button
+ * @description Button 按钮组件。
+ *              variant: primary（品牌色实心）/ secondary（白底描边）/ ghost（透明悬浮）
+ *              size: sm（紧凑，h-8）/ md（默认，h-9）
+ *              使用 forwardRef 支持 ref 转发，继承原生 ButtonHTMLAttributes。
+ */
 import { ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 

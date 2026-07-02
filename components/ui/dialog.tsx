@@ -1,3 +1,11 @@
+/**
+ * @module dialog
+ * @description Dialog 模态弹窗组件。
+ *              - open=false 时返回 null（不渲染 DOM）
+ *              - 背景蒙层点击 / Escape 键 → 关闭
+ *              - 打开时锁定 body 滚动（overflow: hidden），关闭时恢复
+ *              - 使用 role="dialog" + aria-modal="true" 确保无障碍
+ */
 "use client";
 
 import { ReactNode, useEffect } from "react";

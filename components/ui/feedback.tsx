@@ -1,3 +1,11 @@
+/**
+ * @module feedback
+ * @description 反馈态组件 —— 覆盖 Loading 和空数据两种兜底状态。
+ *
+ *   Skeleton: 骨架屏占位，animate-pulse 脉冲动画提供"正在加载"的视觉暗示
+ *   EmptyState: 虚线边框居中插画，icon + title + description + 可选 action 按钮
+ *               用于资产列表空数据（引导新增）和对话面板空数据（引导提问）
+ */
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

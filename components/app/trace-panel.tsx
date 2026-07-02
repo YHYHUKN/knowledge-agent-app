@@ -4,6 +4,11 @@ import { AgentTrace } from "@/lib/types";
 import { Badge } from "@/components/ui/card";
 import { AlertTriangle, CircleDot } from "lucide-react";
 
+/**
+ * @component ScoreBar
+ * @description 相似度分数可视化条 —— 琥珀色进度条 + 精确数值。
+ *              score 为 0~1 浮点数，转换为百分比宽度展示。
+ */
 function ScoreBar({ score }: { score: number }) {
   const pct = Math.round(score * 100);
   return (
@@ -20,8 +25,18 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 /**
- * 检索全流程时间轴：Query → Retrieval（含相似度分数）→ Generation。
- * 用竖向 stepper 编码真实的处理顺序，而非装饰性的编号。
+ * @component TracePanel
+ * @description 可观测性面板 —— 用竖向时间轴展示一次 Agent 问答的完整处理链路。
+ *
+ *   【三步时间轴】
+ *   Step 1 — Query       : 展示用户原始问题
+ *   Step 2 — Retrieval   : 展示每条召回资产的标题 + 相似度分数（ScoreBar），
+ *                          无结果时显示红色 "未召回任何相关资产" 警告
+ *   Step 3 — Generation  : 展示 grounded 状态 Badge + 引用来源数量
+ *
+ *   【为什么用竖向 stepper 而非表格】
+ *   时间轴编码了真实的处理顺序（先检索，后生成），这比表格的"属性-值"
+ *   陈列更有叙事性，面试官/开发者一眼就能理解数据是如何一步步流转的。
  */
 export function TracePanel({ trace }: { trace: AgentTrace }) {
   return (

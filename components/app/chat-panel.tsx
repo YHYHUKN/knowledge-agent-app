@@ -9,12 +9,34 @@ import { Card, Badge } from "@/components/ui/card";
 import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { TracePanel } from "@/components/app/trace-panel";
 
+/** 单条对话记录：包含完整 AgentTrace 和展开/收起状态 */
 interface ChatEntry {
   id: string;
   trace: AgentTrace;
   traceOpen: boolean;
 }
 
+/**
+ * @component ChatPanel
+ * @description Agent 问答面板 —— 右侧栏，RAG 链路的交互入口。
+ *   【数据结构】
+ *   ChatEntry = { id, trace: AgentTrace, traceOpen: boolean }
+ *   每个问题生成一条 entry，traceOpen 控制 TracePanel 展开/收起。
+ *
+ *   【交互流程】
+ *   1. 用户输入问题 → POST /api/agent/chat → 拿到 AgentTrace
+ *   2. 生成新 ChatEntry 插入 entries 数组顶部（最新在上）
+ *   3. 每条 entry 展示：问题(Sparkles 图标) → 回答正文 → 引用来源 Badge → 可展开 Trace
+ *
+ *   【三种状态的渲染策略】
+ *   1. loading=true           → 骨架屏占位
+ *   2. loading=false + 无对话 → EmptyState（Bot 图标 + 引导文案）
+ *   3. 有对话记录             → 对话历史列表
+ *
+ *   【为什么提问后清空输入框】
+ *   提交流程中 setQuery("") 清空输入 → 防止用户误重复提交；
+ *   同时 setLoading(true) 禁用按钮 → "生成中" 文案提供即时反馈。
+ */
 export function ChatPanel({ hasAssets }: { hasAssets: boolean }) {
   const [query, setQuery] = useState("");
   const [entries, setEntries] = useState<ChatEntry[]>([]);
